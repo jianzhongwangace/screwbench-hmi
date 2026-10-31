@@ -1,0 +1,5 @@
+{
+  "result": "PASS",
+  "tests": "position, angle, linkage, reverse, invalid, range, pause, stale, cameras, orbit, zero, selection, pixels, desktop/compact/mobile",
+  "pixels": 1793
+}

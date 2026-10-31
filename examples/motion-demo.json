@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "source": "DEMO",
+  "description": "编造的动画演示数据，不是实测，不控制硬件。位移mm，角度rad，时间s。",
+  "loop": true,
+  "loadN": 100,
+  "leadMm": 2,
+  "efficiency": 0.9,
+  "frames": [
+    { "time": 0, "position": 10, "angle": 0 },
+    { "time": 4, "position": 80, "angle": 219.9114857512855 },
+    { "time": 8, "position": 10, "angle": 0 }
+  ]
+}

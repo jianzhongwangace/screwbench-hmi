@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mapSample, PositionFeed, defaults, validCalibration } from '../../src/Desktop/Scene/mapping.mjs';
+const s = {sequence:1,time:.05,position:20,angle:Math.PI/2,valid:true};
+test('position uses measured displacement, not lead or speed',()=>{assert.equal(mapSample(s).carriageX,20);assert.equal(mapSample({...s,rpm:999}).carriageX,20);});
+test('continuous angle maps directly to rotation',()=>assert.ok(Math.abs(mapSample({...s,angle:Math.PI*20+.3}).rotation-.3)<1e-12));
+test('zero and direction transform',()=>{const m=mapSample(s,{positionZero:25,positionSign:-1,angleZero:Math.PI,angleSign:-1});assert.equal(m.displacement,5);assert.equal(m.rotation,Math.PI/2);});
+test('reject invalid and nonfinite telemetry',()=>{assert.equal(mapSample({...s,valid:false}),null);assert.equal(mapSample({...s,angle:NaN}),null);assert.equal(mapSample({...s,position:Infinity}),null);});
+test('out of range flagged, never silently clamped',()=>{const m=mapSample({...s,position:150});assert.equal(m.outOfRange,true);assert.equal(m.carriageX,150);});
+test('position-only frame leaves rotation unspecified',()=>{const {angle,...p}=s;assert.equal(mapSample(p).displacement,20);assert.equal(mapSample(p).rotation,null);assert.equal(mapSample({...p,angle:null}).rotation,null);});
+test('invalid sequence and optional telemetry rejected',()=>{assert.equal(mapSample({...s,sequence:.5}),null);assert.equal(mapSample({...s,sequence:-1}),null);assert.equal(mapSample({...s,time:-1}),null);assert.equal(mapSample({...s,torque:Infinity}),null);});
+test('reject malformed calibration',()=>{assert.equal(validCalibration({...defaults,positionSign:0}),false);assert.equal(mapSample(s,{...defaults,positionZero:NaN}),null);});
+test('ordered frames, stale data, pause and reset',()=>{const f=new PositionFeed();assert.equal(f.accept(s,0),true);assert.equal(f.accept({...s,position:90},5),false);assert.equal(f.sample.position,20);assert.match(f.status('Running',1001),/超时/);assert.match(f.status('Paused',1001),/暂停/);assert.match(f.status('Fault',1001),/故障/);f.reset();assert.equal(f.accept(s,2000),true);});
+test('invalid frame freezes previous pose',()=>{const f=new PositionFeed();f.accept(s,0);assert.equal(f.accept({...s,sequence:2,valid:false},50),false);assert.equal(f.sample.position,20);assert.match(f.status('Running',100),/无效/);});

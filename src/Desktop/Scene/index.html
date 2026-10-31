@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>丝杠机构实时联动</title>
+  <link rel="stylesheet" href="scene.css">
+  <link rel="stylesheet" href="annotations.css">
+</head>
+<body>
+  <header>
+    <div><strong>机构实时联动</strong><span class="sub">卧式丝杠性能测试平台</span></div>
+    <div class="status"><span id="source">无数据源</span><span id="status">等待位置数据</span></div>
+  </header>
+  <main>
+    <section id="viewport" aria-label="三维丝杠测试机构">
+      <div id="tools">
+        <div class="segment" aria-label="观察方向">
+          <button data-view="iso" class="active" title="轴测视图" aria-label="轴测视图"><i data-lucide="box"></i></button>
+          <button data-view="front" title="正视图" aria-label="正视图"><i data-lucide="panel-top"></i></button>
+          <button data-view="top" title="俯视图" aria-label="俯视图"><i data-lucide="panels-top-left"></i></button>
+        </div>
+        <button id="fit" title="复位视角" aria-label="复位视角"><i data-lucide="scan"></i></button>
+        <button id="zoom-in" title="放大" aria-label="放大"><i data-lucide="zoom-in"></i></button>
+        <button id="zoom-out" title="缩小" aria-label="缩小"><i data-lucide="zoom-out"></i></button>
+        <button id="settings-button" title="显示坐标设置" aria-label="显示坐标设置"><i data-lucide="settings-2"></i></button>
+      </div>
+      <div id="scene-error" hidden></div>
+      <div id="sensor-annotations" aria-label="传感器数据引线">
+        <svg id="sensor-leaders" aria-hidden="true"></svg>
+        <button class="sensor-callout torque" data-sensor="torque"><b>扭矩传感器</b><span>-- N·m</span></button>
+        <button class="sensor-callout rpm" data-sensor="rpm"><b>转速编码器</b><span>-- rpm</span></button>
+        <button class="sensor-callout force" data-sensor="force"><b>轴向力传感器</b><span>-- N</span></button>
+        <button class="sensor-callout position" data-sensor="position"><b>光栅尺 / 读数头</b><span>-- mm</span></button>
+        <button class="sensor-callout angle" data-sensor="angle"><b>丝杠角度</b><span>-- rad</span></button>
+      </div>
+      <div class="scene-footer"><span id="cad-source">二维参考重建 · 非制造模型</span><span>单位 / mm</span></div>
+    </section>
+    <aside>
+      <h2>部件与位置</h2>
+      <div id="parts"></div>
+      <section id="details">
+        <h3 id="part-name">螺母 / 滑块 / 连接板</h3>
+        <div id="part-kind" class="tag">位置通道驱动</div>
+        <dl>
+          <div><dt>采集位移</dt><dd id="position">-- <small>mm</small></dd></div>
+          <div><dt>显示位移</dt><dd id="display-position">-- <small>mm</small></dd></div>
+          <div><dt>丝杠转角</dt><dd id="angle">-- <small>rad</small></dd></div>
+          <div><dt>转速</dt><dd id="rpm">-- <small>rpm</small></dd></div>
+          <div><dt>轴向力</dt><dd id="force">-- <small>N</small></dd></div>
+          <div><dt>输入转矩</dt><dd id="torque">-- <small>N·m</small></dd></div>
+        </dl>
+        <div id="range-warning" hidden>超出示意行程，模型保持最后有效位置</div>
+        <p id="sample-id">样本 --</p>
+        <p id="mapping-note">加载杆为几何联动，不代表电缸实测位置</p>
+      </section>
+    </aside>
+  </main>
+  <dialog id="settings">
+    <form id="calibration">
+      <div class="dialog-heading"><h2>显示坐标设置</h2><button type="button" id="close-settings" title="关闭" aria-label="关闭"><i data-lucide="x"></i></button></div>
+      <label>位移零点 / mm<input id="position-zero" type="number" step="any" required value="0"></label>
+      <label>位移方向<select id="position-sign"><option value="1">+X</option><option value="-1">-X</option></select></label>
+      <label>转角零点 / rad<input id="angle-zero" type="number" step="any" required value="0"></label>
+      <label>转角方向<select id="angle-sign"><option value="1">正向</option><option value="-1">反向</option></select></label>
+      <p class="notice">仅改变三维显示坐标，不写入控制器，不修改采集数据或传感器标定。</p>
+      <div class="dialog-actions"><button type="button" id="reset-calibration">恢复默认</button><button class="primary" type="submit">应用</button></div>
+    </form>
+  </dialog>
+  <script type="module" src="bundle.js"></script>
+</body>
+</html>

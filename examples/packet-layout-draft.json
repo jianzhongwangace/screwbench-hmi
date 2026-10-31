@@ -1,0 +1,24 @@
+{
+  "note": "草案 v0.1：32 字节采样帧，含 CRC16/CCITT-FALSE。协议正文见 docs/上位机与STM32通信协议v0.1草案.md，协议冻结后如需变更，修改本文件即可，上位机无需改代码。",
+  "endian": "LE",
+  "syncOffset": 0,
+  "syncPattern": "AA55",
+  "textSyncPattern": "AA54",
+  "lengthOffset": 2,
+  "lengthType": "uint16",
+  "lengthIncludesHeader": true,
+  "minFrame": 32,
+  "fields": [
+    { "name": "timestamp", "offset": 4, "type": "uint32", "scale": 0.001, "unit": "s" },
+    { "name": "sample_seq", "offset": 8, "type": "uint32", "scale": 1, "unit": "" },
+    { "name": "torque", "offset": 12, "type": "int16", "scale": 0.01, "unit": "N·m" },
+    { "name": "force", "offset": 14, "type": "int16", "scale": 0.1, "unit": "N" },
+    { "name": "position", "offset": 16, "type": "int32", "scale": 0.001, "unit": "mm" },
+    { "name": "rpm", "offset": 20, "type": "int16", "scale": 1, "unit": "rpm" },
+    { "name": "angle", "offset": 22, "type": "uint32", "scale": 0.0001, "unit": "rad" },
+    { "name": "status", "offset": 26, "type": "uint16", "scale": 1, "unit": "位域" },
+    { "name": "quality", "offset": 28, "type": "uint8", "scale": 1, "unit": "枚举" },
+    { "name": "flags", "offset": 29, "type": "uint8", "scale": 1, "unit": "位域" },
+    { "name": "crc16", "offset": 30, "type": "uint16", "scale": 1, "unit": "" }
+  ]
+}

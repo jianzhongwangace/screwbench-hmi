@@ -1,0 +1,19 @@
+{
+  "name": "screwbench-scene",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test mapping.test.mjs",
+    "qa": "node qa.mjs"
+  },
+  "dependencies": {
+    "lucide": "0.468.0",
+    "three": "0.180.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9",
+    "occt-import-js": "0.0.23",
+    "playwright": "1.55.0"
+  }
+}

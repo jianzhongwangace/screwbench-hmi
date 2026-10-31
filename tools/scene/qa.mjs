@@ -1,0 +1,47 @@
+import { chromium } from 'playwright';
+import { createServer } from 'node:http';
+import { readFile, mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+const root=path.resolve('../../src/Desktop/Scene'),out=path.resolve('../../qa/scene');await mkdir(out,{recursive:true});
+const server=createServer(async(req,res)=>{try{const url=new URL(req.url,'http://localhost');const name=url.pathname==='/'?'index.html':url.pathname.slice(1);const file=path.resolve(root,name);if(!file.startsWith(root+path.sep))throw new Error('path');const bytes=await readFile(file);res.setHeader('Content-Type',file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':'application/octet-stream');res.end(bytes);}catch{res.writeHead(404);res.end();}});
+await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+let browser;
+try{
+ browser=await chromium.launch({channel:'msedge',headless:true});
+ const page=await browser.newPage({viewport:{width:1400,height:800}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(`http://127.0.0.1:${server.address().port}`);await page.waitForFunction(()=>window.screwBench?.inspect().loaded);
+ const frame=(seq,x,angle,state='Running',valid=true)=>({type:'frame',source:'SIMULATED',session:'qa',state,sample:{sequence:seq,time:seq*.05,position:x,angle,rpm:300,force:-100,torque:.04,valid}});
+ const send=async f=>{await page.evaluate(f=>window.screwBench.receive(f),f);await page.waitForTimeout(100);};
+ const inspect=()=>page.evaluate(()=>window.screwBench.inspect());
+ await send(frame(1,0,0));const before=await page.locator('canvas').screenshot();
+ await send(frame(2,100,Math.PI/2));const end=await inspect();assert.equal(end.carriageX,100);assert.equal(end.shaftAngle,Math.PI/2);assert.equal(end.linkLength,142);
+ const after=await page.locator('canvas').screenshot();assert.notDeepEqual(before,after);
+ await send(frame(3,20,.7));assert.equal((await inspect()).carriageX,20);
+ await send(frame(4,90,.8,'Running',false));assert.equal((await inspect()).carriageX,20);
+ await send(frame(5,150,1));assert.equal((await inspect()).carriageX,20);assert.equal(await page.locator('#range-warning').isVisible(),true);
+ await send(frame(6,40,.9,'Paused'));const paused=await inspect();await page.waitForTimeout(1100);assert.equal((await inspect()).carriageX,paused.carriageX);
+ await send(frame(7,40,.9));await page.waitForTimeout(1200);assert.match((await inspect()).status,/超时/);
+ await page.getByRole('button',{name:'正视图',exact:true}).click();const front=(await inspect()).camera;
+ await page.getByRole('button',{name:'俯视图',exact:true}).click();assert.notDeepEqual((await inspect()).camera,front);
+ await page.getByRole('button',{name:'轴测视图',exact:true}).click();
+ const viewport=page.locator('#viewport');const rect=await viewport.boundingBox();await page.mouse.move(rect.x+rect.width*.6,rect.y+rect.height*.6);await page.mouse.down();await page.mouse.move(rect.x+rect.width*.7,rect.y+rect.height*.65,{steps:10});await page.mouse.up();await page.waitForTimeout(400);assert.notDeepEqual((await inspect()).camera,front);
+ await page.getByRole('button',{name:'复位视角',exact:true}).click();
+ await page.getByRole('button',{name:'显示坐标设置',exact:true}).click();await page.locator('#position-zero').fill('10');await page.getByRole('button',{name:'应用',exact:true}).click();assert.equal((await inspect()).carriageX,30);
+ await page.getByRole('button',{name:'显示坐标设置',exact:true}).click();await page.getByRole('button',{name:'恢复默认',exact:true}).click();await page.getByRole('button',{name:'关闭',exact:true}).click();
+ await page.getByRole('button',{name:'加载杆 / 浮动关节',exact:true}).click();assert.equal((await inspect()).selected,'actuator');
+ await page.getByRole('button',{name:'螺母 / 滑台 / 读数头',exact:true}).click();
+ const pixels=await page.evaluate(()=>{const c=document.querySelector('canvas');const test=document.createElement('canvas');test.width=160;test.height=100;const ctx=test.getContext('2d');ctx.drawImage(c,0,0,160,100);const d=ctx.getImageData(0,0,160,100).data;let dark=0;for(let i=0;i<d.length;i+=4)if(d[i]<180&&d[i+1]<180&&d[i+2]<180)dark++;return dark;});assert.ok(pixels>150,'nonblank mechanism pixels');
+ for(const [name,width,height]of[['desktop',1400,800],['compact',990,600],['mobile',390,844]]){await page.setViewportSize({width,height});await page.waitForTimeout(500);await page.screenshot({path:path.join(out,name+'.png')});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.ok((await inspect()).calls>10);}
+ assert.deepEqual(errors,[]);await writeFile(path.join(out,'result.json'),JSON.stringify({result:'PASS',tests:'position, angle, linkage, reverse, invalid, range, pause, stale, cameras, orbit, zero, selection, pixels, desktop/compact/mobile',pixels},null,2));console.log('PASS: 3D mapping, controls, canvas pixels and responsive screenshots');
+ const fixed=(await inspect()).rulerPosition;const motor=(await inspect()).motorShellPosition;
+ const external=(sequence,position,angle,source='IMPORTED')=>({type:'frame',source,session:'external-qa',state:source==='IMPORTED'?'Stopped':'Running',sample:{sequence,time:sequence*.05,position,angle,valid:true}});
+ await send(external(1,25,null));let a=await inspect();assert.equal(a.carriageX,25);assert.equal(a.source,'IMPORTED');assert.equal(a.readHeadPosition[0],25);assert.equal(a.nutPosition[0],18);assert.deepEqual(a.rulerPosition,fixed);assert.deepEqual(a.motorShellPosition,motor);assert.equal(await page.locator('#force').innerText(),'--');assert.match(await page.locator('[data-sensor=angle] span').innerText(),/--/);
+ await send(external(2,55,Math.PI/2));a=await inspect();assert.equal(a.carriageX,55);assert.equal(a.shaftAngle,Math.PI/2);
+ await send(external(3,10,null));a=await inspect();assert.equal(a.readHeadPosition[0],10);assert.equal(a.shaftAngle,Math.PI/2);
+ await send(external(4,50,null,'MEASURED'));assert.equal((await inspect()).source,'MEASURED');
+ await send({...external(5,90,null,'MEASURED'),sample:{sequence:5,time:.25,position:90,valid:false}});assert.equal((await inspect()).carriageX,50);
+ await page.setViewportSize({width:1400,height:800});await send(external(6,55,null));await page.waitForTimeout(500);await page.screenshot({path:path.join(out,'position-input.png')});assert.deepEqual(errors,[]);
+ await writeFile(path.join(out,'position-input-result.json'),JSON.stringify({result:'PASS',tests:'position-only input, optional channels, reader/nut motion, fixed ruler/motor, angle hold, imported/measured source, invalid hold'},null,2));
+ console.log('PASS: independent position input, moving reader/nut, stationary scale, optional data and source labels');
+}finally{await browser?.close();await new Promise(resolve=>server.close(resolve));}

@@ -1,0 +1,4 @@
+{
+  "result": "PASS",
+  "tests": "position-only input, optional channels, reader/nut motion, fixed ruler/motor, angle hold, imported/measured source, invalid hold"
+}
