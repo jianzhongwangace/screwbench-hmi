@@ -1,5 +1,7 @@
 # 丝杠螺母效率测试上位机
 
+[English](README_EN.md) | 中文
+
 **© 著名原创**
 
 ScrewBench：滚珠丝杠 / 螺母综合效率测试上位机（Windows WPF + WebView2 + Three.js）。当前为模拟运行版，含卧式平台三维联动。
